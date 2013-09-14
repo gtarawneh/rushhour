@@ -19,4 +19,4 @@ This a C# implementation of the puzzle game rush hour. I created this to experim
 
 ### Screenshot
 
-![Screenshot](https://raw.github.com/gtarawneh/rushhour/master/screenshots/screenshot.png "GUI")
+![Screenshot](https://github.com/gtarawneh/rushhour/blob/master/screenshots/screenshot1.png "GUI")
