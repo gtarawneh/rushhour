@@ -1,0 +1,302 @@
+﻿        static public int SpaceSearch(park p, int depth, ref parkHistory pH)
+        {
+            // checking if current state does not exist in history
+
+            for (int i = 0; i < pH.count; i++)
+            {
+                bool match = true;
+
+                for (int j = 0; j < p.count; j++) if (pH.pos[i][j] != p.pos[j]) { match = false; break; }
+
+                if (match) return i;
+
+            }
+
+            // adding current node to history
+
+            for (int j = 0; j < p.count; j++) pH.pos[pH.count][j] = p.pos[j];
+
+            int id = pH.count;
+
+            pH.count++;
+
+            // state generation:
+
+            movesList l = parkLogic.generateMoves(p);
+
+
+
+            if (p.pos[0] == (p.width * 3 - 2))
+            {
+                pH.isSol[id] = true;
+                pH.solutionCount++;
+            }
+
+
+            for (int i = 0; i < l.count; i++)
+            {
+
+                p = parkLogic.makeMove2(p, l.car_ind[i], l.dir[i]);
+
+                // pH.link[id][pH.linkCount[id]++] = pH.count;
+
+                int nodeID = SpaceSearch(p, depth + 1, ref pH);
+
+                int currentLinkCount = pH.linkCount[id];
+
+                pH.link[id][currentLinkCount] = nodeID;
+
+                pH.linkCount[id]++;
+
+
+
+                // pH.link [id][pH.linkCount [id]--] = 0;
+
+
+
+                parkLogic.makeMove2(p, l.car_ind[i], -l.dir[i]); // undo move
+
+            }
+
+            return id;
+        }
+        
+        
+        static public int findShortestPath(parkHistory pH, int nodeA, int nodeB)
+        {
+            int[] distances = new int[pH.count];
+
+            for (int i = 0; i < pH.count; i++) distances[i] = -1;
+
+            Queue<int> neighbours = new Queue<int>();
+
+            Queue<int> current = new Queue<int>();
+
+            current.Enqueue(nodeA);
+
+            distances[nodeA] = 0;
+
+            // for (int i=0; i<pH.linkCount [nodeA]; i++) neighbours .Enqueue (pH.link [nodeA][i]);
+
+
+
+            int visited_count = 1;
+
+            while (visited_count < pH.count)
+            {
+                neighbours = new Queue<int>();
+
+                while (current.Count > 0)
+                {
+                    int node = current.Dequeue();
+
+                    for (int i = 0; i < pH.linkCount[node]; i++)
+                    {
+                        int next_node = pH.link[node][i];
+
+                        int total_distance = distances[node] + 1;
+
+                        if (distances[next_node] == -1)
+                        {
+                            neighbours.Enqueue(next_node); // this node hasn't been searched before
+
+                            visited_count++;
+                        }
+
+                        if ((distances[next_node] == -1) || (total_distance < distances[next_node])) distances[next_node] = distances[node] + 1; // update distance
+                    }
+
+                }
+
+                current = neighbours;
+
+
+
+
+            }
+
+            int min_to_sol = -1;
+
+            for (int i = 0; i < pH.count; i++)
+            {
+                if (pH.isSol[i])
+                {
+                    if ((distances[i] < min_to_sol) || (min_to_sol == -1)) min_to_sol = distances[i];
+                }
+            }
+
+            return min_to_sol;
+
+        }
+        
+        
+        static public park makeMove(park p, int car, int dir)
+        {
+            if ((p.alignment[car] == 0) && (dir == -1))
+            {
+                int new_head = p.pos[car] - 1;
+
+                int old_tail = p.pos[car] + p.length[car] - 1;
+
+                p.occupancy[old_tail] = 0;
+
+                p.occupancy[new_head] = car + 1;
+
+                p.pos[car]--;
+            }
+
+            if ((p.alignment[car] == 0) && (dir == 1))
+            {
+                int new_tail = p.pos[car] + p.length[car];
+
+                int old_head = p.pos[car];
+
+                p.occupancy[old_head] = 0;
+
+                p.occupancy[new_tail] = car + 1;
+
+                p.pos[car]++;
+            }
+
+            if ((p.alignment[car] == 1) && (dir == -1))
+            {
+                int new_head = p.pos[car] - p.width;
+
+                int old_tail = p.pos[car] + (p.length[car] - 1) * p.width;
+
+                p.occupancy[old_tail] = 0;
+
+                p.occupancy[new_head] = car + 1;
+
+                p.pos[car] -= p.width;
+            }
+
+            if ((p.alignment[car] == 1) && (dir == 1))
+            {
+                int new_tail = p.pos[car] + p.length[car] * p.width;
+
+                int old_head = p.pos[car];
+
+                p.occupancy[old_head] = 0;
+
+                p.occupancy[new_tail] = car + 1;
+
+                p.pos[car] += p.width;
+            }
+
+
+            return p;
+
+        }
+        
+        
+        
+      static public movesList generateMoves(park p)
+        {
+            movesList L = new movesList();
+
+            for (int i = 0; i < p.count; i++)
+            {
+                if (p.alignment[i] == 0)
+                {
+                    // horizontal car
+
+                    if ((p.pos[i] % p.width) + p.length[i] < p.width)
+                    {
+                        if (p.occupancy[p.pos[i] + p.length[i]] == 0)
+                        {
+                            int j = L.count;
+                            L.car_ind[j] = i;
+                            L.dir[j] = 1;
+                            L.count++;
+                        }
+                    }
+
+                    if ((p.pos[i] % p.width) > 0)
+                    {
+                        if (p.occupancy[p.pos[i] - 1] == 0)
+                        {
+                            int j = L.count;
+                            L.car_ind[j] = i;
+                            L.dir[j] = -1;
+                            L.count++;
+                        }
+
+                    }
+                }
+                else
+                {
+                    // vertical car
+
+                    if (p.pos[i] + p.length[i] * (p.width) < (p.width * p.height))
+                    {
+                        if (p.occupancy[p.pos[i] + p.length[i] * (p.width)] == 0)
+                        {
+                            int j = L.count;
+                            L.car_ind[j] = i;
+                            L.dir[j] = 1;
+                            L.count++;
+                        }
+                    }
+
+
+
+                    if (p.pos[i] > p.width - 1)
+                    {
+                        if (p.occupancy[p.pos[i] - p.width] == 0)
+                        {
+                            int j = L.count;
+                            L.car_ind[j] = i;
+                            L.dir[j] = -1;
+                            L.count++;
+                        }
+                    }
+
+
+
+
+                }
+
+
+            }
+
+            return L;
+
+        }
+        
+        
+namespace cpark
+{
+    public class hashCodes
+    {
+        public int[] tab;
+        public int size;
+
+        public hashCodes(int s)
+        {
+            tab = new int[s];
+
+            size = s;
+        }
+
+        public void populate()
+        {
+            Random R = new Random();
+
+            for (int i = 0; i < size; i++) tab[i] = R.Next(int.MaxValue);
+        }
+    }
+
+    static public class hashLogic
+    {
+        static public int calculateParkHash(park p, hashCodes hC)
+        {
+            int res = 0;
+
+            for (int i = 0; i < p.count; i++) res ^= hC.tab[p.pos[i]];
+
+            return res;
+        }
+
+    }
+        
